@@ -235,7 +235,7 @@ const parseProcExp = (vars: Sexp, body: Sexp[]): Result<ProcExp> =>
                                                  makeProcExp(map(makeVarDecl, vars), cexps)) :
     makeFailure(`Invalid vars for ProcExp ${format(vars)}`);
 
-    const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> =>
+    /*const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> =>
         isArray(fields) && allT(isString, fields) && fields.length !== 0 ?
             bind(
                 mapv(
@@ -254,11 +254,16 @@ const parseProcExp = (vars: Sexp, body: Sexp[]): Result<ProcExp> =>
     
     
     
-/*const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> =>
+const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> =>
     isArray(fields) && allT(isString, fields)?
-    bind(mapv(mapResult(parseL3CExp, map(second, methods)), (vals: CExp[]) => zipWith(makeBinding, map(first, methods), vals)), (bindings: Binding[]) => 
-        makeOk(makeClassExp(map(makeVarDecl, fields), bindings))) : makeFailure(`Invalid fields for ClassExp ${format(fields)}`);*/ 
-    
+    bind(mapv(mapResult(parseL3CExp, map(second, methods)), (vals: CExp[]) => zipWith(makeBinding, map(first, methods), vals)), (bindings: Binding[]) =>
+        makeOk(makeClassExp(map(makeVarDecl, fields), bindings))) : makeFailure(`Invalid fields for ClassExp ${format(fields)}`);*/
+
+const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> =>
+    isArray(fields) && allT(isString, fields)?
+    mapv(parseBindings(methods), (bindings:Binding[]) => makeClassExp(map(makeVarDecl, fields), bindings)) :
+        makeFailure(`Invalid fields for ClassExp ${format(fields)}`);
+
     
 
     
@@ -268,6 +273,12 @@ const isGoodBindings = (bindings: Sexp): bindings is [string, Sexp][] =>
     isArray(bindings) &&
     allT(isNonEmptyList<Sexp>, bindings) &&
     allT(isIdentifier, map(first, bindings));
+
+const parseBindings = (bindings:Sexp): Result<Binding[]> =>
+    isGoodBindings(bindings) ?
+    mapv(mapResult(parseL3CExp, map(second, bindings)), (vals: CExp[]) =>
+        zipWith(makeBinding, map(b => b[0], bindings), vals)) :
+    makeFailure('Malformed bindings in "let" expression');
 
 const parseLetExp = (bindings: Sexp, body: Sexp[]): Result<LetExp> => {
     if (!isGoodBindings(bindings)) {
